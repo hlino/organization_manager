@@ -1,0 +1,144 @@
+openapi: 3.0.0
+info:
+  title: OrganizationManager
+  version: "1.0.0"
+
+paths:
+  /organizations:
+    get:
+      description: Returns a paginated list of organizations. Requires the super admin role.
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          description: Categorical filter in the format of `<field_name>:<value>`. `name:CLEAR` creates a filter for all organizations whose name is equal to CLEAR. Use the `*` for partial matching filters.`name:*e*` creates a filter for all organization whose name contains an "e" and `name:Org*` creates a filter for all organizations whose name starts with "Org".
+          schema:
+            $ref: '#/components/schemas/Filter'
+        - name: range_filter
+          in: query
+          required: false
+          description: Filter an attribute over a specified range. Only valid for contiuous fields. Expected format is `<field_name>:[<start_range>TO<end_range>]`. Use * to denote open ended range, hard brackets `[]` to denote inclusive filter ranges and parenthesis `()` to denote exclusive filter ranges. `employee_count:[10TO20)` creates a filter for all organizations that have 10 or more and less than 20 employees. `employee_count:(*TO20)` creates a filter for organizations with less than 20 employees.
+          schema:
+            $ref: '#/components/schemas/RangeFilter'
+        - name: page
+          in: query
+          required: false
+          description: The page to fetch. Defaults to 1.
+          schema:
+            $ref: '#/components/schemas/Page'
+        - name: page_size
+          in: query
+          required: false
+          description: The number of objects to return in a single page. The default is 20.
+          schema:
+            $ref: '#/components/schemas/PageSize'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrganizationResponse'
+      tags:
+        - organizations
+    post:
+      description: Creates a new organization.
+      requestBody:
+        description: The new organization to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+      tags:
+        - organizations
+
+components:
+  schemas:
+    Page:
+      type: integer
+      default: 1
+    PageSize:
+      type: integer
+    TotalPages:
+      type: integer
+    TotalCount:
+      type: integer
+    Filter:
+      type: string
+      example: name:CLEAR
+    RangeFilter:
+      type: string
+      example: employee_count:(10TO15]
+    CreateOrganizationRequest:
+      required:
+        - name
+        - creation_date
+        - employee_count
+        - is_public
+      properties:
+        name:
+          type: string
+          description: Name of the organization to create
+          example: CLEAR
+        creation_date:
+          type: string
+          format: date-time
+          description: Date-time coresponding to the creation of the organization. Should be supplied in ISO8601 format.
+          example: "2010-10-01T00:00:00Z"
+        employee_count:
+          type: number
+          description: Number of employees in the organization
+          example: 1000
+        is_public:
+          type: boolean
+          description: Boolean value to denote whether the organization is public or not.
+          example: true
+    OrganizationResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique internal ID assigned to the newly created organization.
+        name:
+          type: string
+          description: Name of the organization to create
+          example: CLEAR
+        creation_date:
+          type: string
+          format: date-time
+          description: Date-time coresponding to the creation of the organization. Should be supplied in ISO8601 format.
+          example: "2010-10-01T00:00:00Z"
+        employee_count:
+          type: number
+          description: Number of employees in the organization
+          example: 1000
+        is_public:
+          type: boolean
+          description: Boolean value to denote whether the organization is public or not.
+          example: true
+    PaginatedOrganizationResponse:
+      required:
+        - data
+        - page
+        - page_size
+      properties:
+        data:
+          type: array
+          description: List of organizations.
+          items:
+            $ref: '#/components/schemas/OrganizationResponse'
+        page:
+          $ref: '#/components/schemas/Page'
+        page_size:
+          $ref: '#/components/schemas/PageSize'
+        total_pages:
+          $ref: '#/components/schemas/TotalPages'
+        total_count:
+          $ref: '#/components/schemas/TotalCount'
