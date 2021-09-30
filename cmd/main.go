@@ -42,6 +42,6 @@ func main() {
 
 	log.Infof("successfully started server")
 
-	server.Run()
+	server.Run(envConfig.Port)
 }
 

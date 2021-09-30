@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -25,7 +26,7 @@ func (s *Server) Initialize() error {
 	return nil
 }
 
-func (s *Server) Run() {
-	log.Info("Listening to port 8084")
-	log.Fatal(http.ListenAndServe(":8084", s.Router))
+func (s *Server) Run(port int) {
+	log.Infof("Listening to port %d", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), s.Router))
 }
