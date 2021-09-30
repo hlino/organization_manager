@@ -1,0 +1,37 @@
+version: '3.5'
+
+x-db-config: &db-config
+  POSTGRES_USER: user
+  POSTGRES_PASSWORD: Password123!
+  POSTGRES_DB: organization_service
+  POSTGRES_PORT: 5432
+  POSTGRES_HOST: postgres
+
+services:
+  postgres:
+    image: postgres:10.11
+    environment: *db-config
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "organization_service", "-U", "user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres:/data/postgres
+
+  org_manager:
+    build: .
+    environment:
+      DATABASE_URL: "postgres://user:Password123!@postgres:5432/organization_service?sslmode=disable"
+      MIGRATIONS_PATH: "file://app/database/migrations"
+      PORT: "8082"
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres:
+  pgadmin:
