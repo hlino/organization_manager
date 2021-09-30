@@ -37,8 +37,10 @@ func main() {
 	server := api.Server{}
 	err = server.Initialize()
 	if err != nil {
-		log.Fatalf("error initializing database: %v", err.Error())
+		log.Fatalf("error initializing server: %v", err.Error())
 	}
+
+	log.Infof("successfully started server")
 
 	server.Run()
 }
