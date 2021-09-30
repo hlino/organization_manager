@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -14,12 +13,10 @@ import (
 
 var DB *gorm.DB
 
-func Initialize(dbUser, dbPassword, dbHost, dbName string, dbPort int) error {
-	gormDb := fmt.Sprintf("host=%s user=%s dbname=%s password=%s port=%d sslmode=disable",
-		dbHost, dbUser, dbName, dbPassword, dbPort)
-	log.Infof("Attempting to connect to database: %v", gormDb)
+func Initialize(dbURI string) error {
+	log.Infof("Attempting to connect to database: %v", dbURI)
 	var err error
-	DB, err = gorm.Open(postgres.Open(gormDb), &gorm.Config{})
+	DB, err = gorm.Open(postgres.Open(dbURI), &gorm.Config{})
 	if err != nil {
 		log.Errorf("Unable to connect to postgres: %v", err)
 		return err
@@ -27,9 +24,7 @@ func Initialize(dbUser, dbPassword, dbHost, dbName string, dbPort int) error {
 	return nil
 }
 
-func RunMigrations(migrationsPath, dbUser, dbPassword, dbHost, dbName string, dbPort int) error {
-	dbUri := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
+func RunMigrations(migrationsPath, dbUri string) error {
 	var err error
 	migrations, err := migrate.New(migrationsPath, dbUri)
 	if err != nil {

@@ -7,4 +7,5 @@ type EnvConfig struct {
 	PostgresPort     int    `default:"5432" split_words:"true"`
 	PostgresDb       string `default:"organization_service" split_words:"true"`
 	MigrationsPath   string `default:"file://pkg/database/migrations" split_words:"true"`
+	DatabaseURL      string `default:"" split_words:"true"`
 }
