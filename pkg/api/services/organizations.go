@@ -36,6 +36,8 @@ type PaginatedOrganizationResponse struct {
 	TotalCount    int                   `json:"total_count"`
 }
 
+// SaveNewOrganization deserializes POST request and saves and returns a new organization object
+// Will return an error and associated http response code as well
 func SaveNewOrganization(requestContent io.ReadCloser) (*models.Organization, int, error) {
 	var orgRequestObject models.Organization
 	err := json.NewDecoder(requestContent).Decode(&orgRequestObject)
@@ -44,32 +46,36 @@ func SaveNewOrganization(requestContent io.ReadCloser) (*models.Organization, in
 		return nil, http.StatusBadRequest, errors.New("invalid request body")
 	}
 	if err != nil {
+		log.Errorf("error deserializing organization POST request body: %v", err)
 		return nil, http.StatusBadRequest, errors.Wrap(err, "invalid request body")
 	}
 
 	err = orgRequestObject.Save()
 	if err != nil {
+		log.Errorf("error saving new organization: %v", err)
 		return nil, http.StatusInternalServerError, err
 	}
 
 	return &orgRequestObject, http.StatusCreated, nil
 }
 
-func GetOrganizations(queryParams url.Values) (*PaginatedOrganizationResponse, error) {
+// GetOrganizations parses query parameters from GET request to create database query and returns paginated result
+// Will return an error and associated http response code as well
+func GetOrganizations(queryParams url.Values) (*PaginatedOrganizationResponse, int, error) {
 	categoryQueryFilters, _ := queryParams[filterQueryParam]
 	rangeQueryFilters, _ := queryParams[rangeFilterQueryParam]
 
 	page, pageSize, err := getPaginationQueryParams(queryParams)
 	if err != nil {
-		return nil, err
+		return nil, http.StatusBadRequest, err
 	}
 
-	// Process categorical filters
+	// Process categorical filters from query parameters
 	var categoryDBFilters = make([]models.CategoryQueryFilter, len(categoryQueryFilters))
 	for i, filter := range categoryQueryFilters {
 		matchedGroups, err := checkFilter(categoryFilterRegex, filter, 3, false)
 		if err != nil {
-			return nil, err
+			return nil, http.StatusBadRequest, err
 		}
 
 		categoryDBFilters[i].DBfield = matchedGroups[1]
@@ -82,12 +88,12 @@ func GetOrganizations(queryParams url.Values) (*PaginatedOrganizationResponse, e
 		}
 	}
 
-	// Process range filters
+	// Process range filters from query parameters
 	var rangeDBFilters = make([]models.RangeQueryFilter, len(rangeQueryFilters))
 	for i, filter := range rangeQueryFilters {
 		matchedGroups, err := checkFilter(rangeFilterRegex, filter, 6, true)
 		if err != nil {
-			return nil, err
+			return nil, http.StatusBadRequest, err
 		}
 
 		rangeDBFilters[i].DBfield = matchedGroups[1]
@@ -105,6 +111,7 @@ func GetOrganizations(queryParams url.Values) (*PaginatedOrganizationResponse, e
 		}
 	}
 
+	//sends parsed query params from request to query the database
 	orgs, totalCount, err := models.SearchForOrganizations(categoryDBFilters, rangeDBFilters, page, pageSize)
 	totalPages := int(math.Ceil(float64(totalCount) / float64(pageSize)))
 	respObj := PaginatedOrganizationResponse{
@@ -114,9 +121,15 @@ func GetOrganizations(queryParams url.Values) (*PaginatedOrganizationResponse, e
 		TotalPages:    totalPages,
 		TotalCount:    int(totalCount),
 	}
-	return &respObj, err
+	var returnHTTPStatus = http.StatusOK
+	if err != nil {
+		// database query errors should be returned as an internal server error
+		returnHTTPStatus = http.StatusInternalServerError
+	}
+	return &respObj, returnHTTPStatus, err
 }
 
+// getPaginationQueryParams parses request query parameters for pagination values
 func getPaginationQueryParams(queryParams url.Values) (int, int, error) {
 	var err error
 
@@ -142,6 +155,8 @@ func getPaginationQueryParams(queryParams url.Values) (int, int, error) {
 	return page, pageSize, nil
 }
 
+// checkFilter parses and validates the value from a filter or filter_range query, will return components of the parsed
+// filter or an error if the query parameter was not provided correctly
 func checkFilter(regexStrMatcher, filter string, expectedGroupLength int, continuousFilter bool) ([]string, error) {
 	r, err := regexp.Compile(regexStrMatcher)
 	if err != nil {
@@ -157,6 +172,8 @@ func checkFilter(regexStrMatcher, filter string, expectedGroupLength int, contin
 		return nil, errors.Errorf("invalid filter '%s'", filter)
 	}
 
+	// Checks to ensure a continuous attribute was provided with a range_filter, categorical attributes cannot be
+	// used in range filters
 	isAttrContinuous, colExists := models.OrganizationColumnNamesContinuousMap[groups[1]]
 	if !colExists {
 		return nil, errors.Errorf("invalid column name '%s'", groups[1])

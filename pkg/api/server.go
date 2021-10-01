@@ -18,7 +18,6 @@ func (s *Server) Initialize() error {
 	s.Router = mux.NewRouter()
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
 
-	// TODO: evaluate if I should include these
 	originsOk := handlers.AllowedOrigins([]string{"*"})
 	s.Router.Use(handlers.CORS(originsOk, methodsOk))
 

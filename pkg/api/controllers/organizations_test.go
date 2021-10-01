@@ -123,7 +123,7 @@ func TestGetOrganizations(t *testing.T) {
 			expectedQueryConditional: `WHERE name = $1 AND creation_date >= $2`,
 			expectedQueryLimit:       `LIMIT 20 OFFSET 20`,
 			expectedArgs:             []driver.Value{"CLEAR", "2002-09-22T00:00:00Z"},
-			expectedResponseCode:     http.StatusInternalServerError,
+			expectedResponseCode:     http.StatusBadRequest,
 		},
 	}
 

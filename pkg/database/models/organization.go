@@ -31,19 +31,20 @@ type CategoryQueryFilter struct {
 }
 
 const (
-	GTE = ">="
-	GT = ">"
-	LTE = "<="
-	LT = "<"
+	GTE                = ">="
+	GT                 = ">"
+	LTE                = "<="
+	LT                 = "<"
 	OpenRangeDelimiter = "*"
 )
 
-// Map of organization column name to boolean value determining if the field is continuous or not
-var OrganizationColumnNamesContinuousMap = map[string]bool {
-	"name": false,
-	"creation_date": true,
+// OrganizationColumnNamesContinuousMap is a map of organization column name to boolean value determining
+// if the field is continuous or not
+var OrganizationColumnNamesContinuousMap = map[string]bool{
+	"name":           false,
+	"creation_date":  true,
 	"employee_count": true,
-	"is_public": false,
+	"is_public":      false,
 }
 
 func (o *Organization) Save() error {
@@ -51,6 +52,8 @@ func (o *Organization) Save() error {
 	return database.DB.Create(o).Error
 }
 
+// SearchForOrganizations takes in categorical and range filters and creates and executes a query to
+// the organizations database table
 func SearchForOrganizations(categoryFilters []CategoryQueryFilter, rangeFilters []RangeQueryFilter, page,
 	pageSize int) ([]Organization, int64, error) {
 
