@@ -19,6 +19,8 @@ Organization Object:
 For more detailed endpoint documentation see the swagger docs located in `/documentation/api_docs.yaml`
 
 ## Running the server:
+This server expects to be run on Golang v 1.14 with the dependencies specified in the go.mod file. To run the server locally
+follow the steps below.
 
 Install the dependencies:
 ```shell
@@ -39,6 +41,12 @@ Run the go server:
 ```shell
 ./main
 ```
+
+## Configuration through environment variables:
+The following environment variables are used to configure the server:
+- MIGRATIONS_PATH - Path to the folder container golang-migrate files (default: `file://pkg/database/migrations`)
+- DATABASE_URL - Connection URL for database the server connects to (default: `postgres://user:Password123!@localhost:5432/organization_service?sslmode=disable`)
+- PORT - Port in which the server will listen on (default: `8082`)
 
 ## Running unit tests:
 ```shell
