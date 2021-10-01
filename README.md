@@ -29,7 +29,7 @@ go mod download
 
 Build the go package:
 ```shell
-go build -ldflags="-w -s" -installsuffix cgo -o  main ./cmd
+go build -o  main ./cmd
 ```
 
 Run Postgres docker-compose:
