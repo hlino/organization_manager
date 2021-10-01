@@ -90,8 +90,6 @@ func TestSaveNewOrganization(t *testing.T) {
 }
 
 func TestGetOrganizations(t *testing.T) {
-	var organizationColumns = []string{"id", "name", "created_date", "employee_count", "is_public"}
-	var countCol = []string{"count"}
 	var tests = []struct {
 		queryParams              map[string][]string
 		expectedQueryConditional string
@@ -112,6 +110,13 @@ func TestGetOrganizations(t *testing.T) {
 			expectedQueryLimit:       `LIMIT 20 OFFSET 20`,
 			expectedArgs:             []driver.Value{"CLEAR", "2002-09-22T00:00:00Z"},
 			expectedResponseCode:     http.StatusOK,
+		},
+		{
+			queryParams:              map[string][]string{"filter": {"name:CLEAR"}, "range_filter": {"creation_date:[2002-09-22T00:00:00ZTO*]"}, "page": {"2"}},
+			expectedQueryConditional: `WHERE name = $1 AND creation_date >= $2`,
+			expectedQueryLimit:       `LIMIT 20 OFFSET 20`,
+			expectedArgs:             []driver.Value{"CLEAR", "2002-09-22T00:00:00Z"},
+			expectedResponseCode:     http.StatusNotFound,
 		},
 		{
 			queryParams:              map[string][]string{"filter": {"name:CLEAR"}, "range_filter": {"creation_date:[2002-09-22T00:00:00ZTO*]"}, "page": {"r"}},
@@ -138,14 +143,8 @@ func TestGetOrganizations(t *testing.T) {
 			}
 			req.URL.RawQuery = q.Encode()
 
-			mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "organizations" ` + test.expectedQueryConditional)).
-				WithArgs(test.expectedArgs...).WillReturnRows(sqlmock.NewRows(countCol).AddRow(1))
-
-			mock.ExpectQuery(regexp.QuoteMeta(
-				`SELECT * FROM "organizations" ` + test.expectedQueryConditional + ` ORDER BY id ` + test.expectedQueryLimit)).
-				WithArgs(test.expectedArgs...).
-				WillReturnRows(sqlmock.NewRows(organizationColumns).
-					AddRow(uuid.New(), "CLEAR", "2002-09-22T00:00:00Z", 10000, true))
+			mockSearchQueries(test.expectedResponseCode, mock, test.expectedArgs, test.expectedQueryLimit,
+				test.expectedQueryConditional)
 
 			GetOrganizations(w, req)
 			res := w.Result()
@@ -165,5 +164,29 @@ func TestGetOrganizations(t *testing.T) {
 				assert.NotEqual(t, "", respObj.Error)
 			}
 		})
+	}
+}
+
+func mockSearchQueries(expectedResponseCode int, mock sqlmock.Sqlmock, expectedArgs []driver.Value, expectedQueryLimit,
+	expectedQueryConditional string) {
+
+	var organizationColumns = []string{"id", "name", "created_date", "employee_count", "is_public"}
+	var countCol = []string{"count"}
+
+	var returnedCount = 1
+	if expectedResponseCode == http.StatusNotFound {
+		returnedCount = 0
+	}
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "organizations" ` + expectedQueryConditional)).
+		WithArgs(expectedArgs...).WillReturnRows(sqlmock.NewRows(countCol).AddRow(returnedCount))
+
+	searchQuery := mock.ExpectQuery(regexp.QuoteMeta(
+		`SELECT * FROM "organizations" ` + expectedQueryConditional + ` ORDER BY id ` + expectedQueryLimit)).
+		WithArgs(expectedArgs...)
+	if expectedResponseCode == http.StatusNotFound {
+		searchQuery.WillReturnRows(sqlmock.NewRows(organizationColumns))
+	} else {
+		searchQuery.WillReturnRows(sqlmock.NewRows(organizationColumns).
+			AddRow(uuid.New(), "CLEAR", "2002-09-22T00:00:00Z", 10000, true))
 	}
 }
